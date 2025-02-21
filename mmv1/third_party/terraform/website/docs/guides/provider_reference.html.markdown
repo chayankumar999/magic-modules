@@ -67,11 +67,15 @@ If you are using Terraform on your workstation we recommend that you install
 as a primary authentication method. You can enable ADCs by running the command
 `gcloud auth application-default login`.
 
+<!-- 
+TODO: quota project is not currently read from ADC file b/360405077#comment8
+
 Google Cloud reads the quota project for requests will be read automatically
 from the `core/project` value. You can override this project by specifying the
 `--project` flag when running `gcloud auth application-default login`. `gcloud`
 should return this message if you have set the correct billing project:
-`Quota project "your-project" was added to ADC which can be used by Google client libraries for billing and quota.`
+`Quota project "your-project" was added to ADC which can be used by Google client libraries for billing and quota.` 
+-->
 
 ### Running Terraform on Google Cloud
 
@@ -112,8 +116,8 @@ impersonated service account regardless of the primary identity in use.
 
 ## Authentication Configuration
 
-* `credentials` - (Optional) Either the path to or the contents of a
-[service account key file] in JSON format. You can
+* `credentials` - (Optional) Either the path (as returned by the [file terraform function])
+to or the contents of a [service account key file] in JSON format. You can
 [manage key files using the Cloud Console]. Your service account key file is
 used to complete a two-legged OAuth 2.0 flow to obtain access tokens to
 authenticate with the GCP API as needed; Terraform will use it to reauthenticate
@@ -132,6 +136,15 @@ by precedence.
     the path of your service account key file in the
     `GOOGLE_APPLICATION_CREDENTIALS` environment variable, or configure
     authentication through one of the following;
+  
+    ```hcl
+    provider "google" {
+        alias       = "other"
+        project     = var.my_other_project_id
+        region      = var.region
+        credentials = file(pathexpand(var.gcloud_other_dac_file))
+    }
+    ```
 
 * If you're running Terraform from a GCE instance, default credentials
 are automatically available. See
@@ -177,19 +190,23 @@ variable.
 
 ## Quota Management Configuration
 
-* `user_project_override` - (Optional) Defaults to `false`. Controls the quota
-project used in requests to GCP APIs for the purpose of preconditions, quota,
-and billing. If `false`, the quota project is determined by the API and may be
-the project associated with your credentials, or the resource project. If `true`,
-most resources in the provider will explicitly supply their resource project, as
-described in their documentation. Otherwise, a `billing_project` value must be
-supplied. Alternatively, this can be specified using the `USER_PROJECT_OVERRIDE`
-environment variable.
+* `user_project_override` - (Optional) Defaults to `false`. Controls the
+[quota project](https://cloud.google.com/docs/quotas/quota-project) used
+in requests to GCP APIs for the purpose of preconditions, quota, and
+billing. If `false`, the quota project is determined by the API and may
+be the project associated with your credentials for a
+[client-based API](https://cloud.google.com/docs/quotas/quota-project#project-client-based),
+or the resource project for a
+[resource-based API](https://cloud.google.com/docs/quotas/quota-project#project-resource-based).
+If `true`, most resources in the provider will explicitly supply their resource
+project, as described in their documentation. Otherwise, a `billing_project`
+value must be supplied. Alternatively, this can be specified using the
+`USER_PROJECT_OVERRIDE` environment variable.
 
 Service account credentials are associated with the project the service account
 was created in. Credentials that come from the gcloud tool are associated with a
 project owned by Google. In order to properly use credentials that come from
-gcloud with Terraform, it is recommended to set this property to true.
+gcloud with Terraform, it is recommended to set this property to `true`.
 
 `user_project_override` uses the `X-Goog-User-Project`
 [system parameter](https://cloud.google.com/apis/docs/system-parameters). When
@@ -406,3 +423,4 @@ See [RFC 9110](https://www.rfc-editor.org/rfc/rfc9110#field.user-agent) for form
 [gcloud adc]: https://cloud.google.com/sdk/gcloud/reference/auth/application-default/login
 [service accounts]: https://cloud.google.com/docs/authentication/getting-started
 [scopes]: https://developers.google.com/identity/protocols/googlescopes
+[file terraform function]: https://developer.hashicorp.com/terraform/language/functions/file
